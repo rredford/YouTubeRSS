@@ -9,7 +9,7 @@
 
   11-20-2020 
   1.1: rewrite to make icon more olvious when url won't be supported.
-       it also just opens url rather than open new url.
+       it also just opens url rather than open new tab.
        Added tooltip
 */
 
@@ -69,7 +69,7 @@ function newTabProcess(url) {
 
 /*
  * Updates the browserAction icon to reflect whether the current page
- * is already bookmarked.
+ * is a youtube channel url or not.
  */
 // From https://github.com/mdn/webextensions-examples/tree/master/bookmark-it
 function updateIcon() {
@@ -104,7 +104,7 @@ function openRSSTab() {
 
 
 /*
- * Switches currentTab and currentBookmark to reflect the currently active tab
+ * updates icon and tooltip to reflect the currently active tab
  */
 // From https://github.com/mdn/webextensions-examples/tree/master/bookmark-it
 function updateActiveTab(tabs) {
