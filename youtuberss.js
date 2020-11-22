@@ -11,6 +11,9 @@
   1.1: rewrite to make icon more olvious when url won't be supported.
        it also just opens url rather than open new tab.
        Added tooltip
+
+  11-21-20
+  1.2: Slight changes to make this also work in chrome.
 */
 
 // save current url
@@ -73,7 +76,7 @@ function newTabProcess(url) {
  */
 // From https://github.com/mdn/webextensions-examples/tree/master/bookmark-it
 function updateIcon() {
-  browser.browserAction.setIcon({
+  chrome.browserAction.setIcon({
     path: enabled ? {
       32: "icons/page-32.png",
       48: "icons/page-48.png"
@@ -83,7 +86,7 @@ function updateIcon() {
     },
     tabId: currentTab.id
   });
-  browser.browserAction.setTitle({
+  chrome.browserAction.setTitle({
     // Screen readers can see the title
     // channelID contains error message if not enabled.
     title: enabled ? 'YouTubeRSS\nOpen rss link for this channel\nChannel id: ' + channelId : 'YouTubeRSS: ' + channelId,
@@ -94,7 +97,7 @@ function updateIcon() {
 function openRSSTab() {
   if(enabled) {
     try {
-      browser.tabs.update({"url" : "https://www.youtube.com/feeds/videos.xml?channel_id=" + channelId});
+      chrome.tabs.update({"url" : "https://www.youtube.com/feeds/videos.xml?channel_id=" + channelId});
     }
     catch (err) {
       error.log(err.message);
@@ -129,23 +132,23 @@ function updateActiveTab(tabs) {
     }
   }
 
-  var gettingActiveTab = browser.tabs.query({active: true, currentWindow: true});
-  gettingActiveTab.then(updateTab);
+  // call update tab function on current, active tab.
+  chrome.tabs.query({active: true, currentWindow: true}, function(tab){updateTab(tab);});
 }
 
 
 // Add openRSSTab() as a listener to clicks on the browser action.
-browser.browserAction.onClicked.addListener(openRSSTab);
+chrome.browserAction.onClicked.addListener(openRSSTab);
 
 // This 3 handles 3 different aspects of tab updating.
 // listen to tab URL changes
-browser.tabs.onUpdated.addListener(updateActiveTab);
+chrome.tabs.onUpdated.addListener(updateActiveTab);
 
 // listen to tab switching
-browser.tabs.onActivated.addListener(updateActiveTab);
+chrome.tabs.onActivated.addListener(updateActiveTab);
 
 // listen for window switching
-browser.windows.onFocusChanged.addListener(updateActiveTab);
+chrome.windows.onFocusChanged.addListener(updateActiveTab);
 
 // update when the extension loads initially
 updateActiveTab();
