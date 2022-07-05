@@ -1,42 +1,61 @@
 /*
   Rolf Redford
   11/19/2020
-
   GPL 3.0 license.
-
   It gets channel url, grabs channel ID number then
   opens a new tab to channel rss feed.
-
   11-20-2020 
   1.1: rewrite to make icon more olvious when url won't be supported.
        it also just opens url rather than open new tab.
        Added tooltip
-
   11-21-20
   1.2: Slight changes to make this also work in chrome.
+  7-4-22
+  2.0: Massive rewrite to make it work everywhere user-specific youtube page.
 */
 
 // save current url
 var channelId = "";
+var errormsg = "";
 // enabled when it IS channel id, error message otherwise
 var enabled = false;
 
 // set to true if you want console to output.
 var DEBUG = false;
 
+
 // handler for url errors
 function wrongUrl(specific) {
   enabled = false;
-  channelId = specific;
+  errormsg = specific;
   DEBUG && console.log("Url mismatch for channel: " + specific);
-  DEBUG && console.log("--------------------------------------------------------------------");
+  DEBUG && console.log("wrongurlend--------------------------------------------------------------------");
 }
+
+
+//Get current channelId from content script
+function notify(message) {
+    DEBUG && console.log("background script received message");
+    DEBUG && console.log(message.channelId);
+    DEBUG && console.log(message.channelId.length + " length of string");
+    if(message.channelId.length == 24) {
+        channelId = message.channelId;
+        enabled = true;
+    } else {
+        errormsg = "Youtube website, but no channel ID.\nNeed to be in user page, like video or user profile.";
+        enabled = false;
+    }
+    updateIcon();
+}
+//Assign `notify()` as a listener to messages from the content script.
+browser.runtime.onMessage.addListener(notify);
+
 
 // main script area. checks url and if it matches,
 // it builds rss url and opens new url.
 // it is pretty strict what it expects on url.
 function newTabProcess(url) {
-  DEBUG && console.log("--------------------------------------------------------------------");
+  DEBUG && console.log("newtabprocess--------------------------------------------------------------------");
 
   // remove any ? and after that, it breaks script.
   // also avoids weird case where www.youtube.com exists entirely
@@ -45,29 +64,20 @@ function newTabProcess(url) {
   var dom = url.split("?"); 
   // first check if "www.youtube.com" exists.
   dom = dom[0].split("www.youtube.com"); 
-  if( dom.length == 2 ) {
-    // domain was confirmed. now to split the right side of url.
-    var code = dom[1].split("/"); 
-
-    // now detect if correct url type is there, then if entry actually exists.
-    if(code.includes("channel")) {
-      // success. now, does it contain proper number of entries? 3: ("", "channel", ID number)
-      DEBUG && console.log(code);
-      if( code.length == 3) {
-        // this makes new tab with assigned url.
-        DEBUG && console.log("Channel id: " + code[2]);
-        enabled = true;
-        channelId = code[2];
-        DEBUG && console.log("--------------------------------------------------------------------");
-      } else {
-        wrongUrl("had \"channel\", but url is different than expected. Expected this kind of url: https://www.youtube.com/channel/(channel ID number) but didn't get it.");
-      }
-    } else {
-      wrongUrl("has no \"/channel/\" in url.");
-    }
+  if( dom.length != 2 ) {
+    wrongUrl("Has no \"www.youtube.com\" in url.");
+  } else if(dom[1] === "/feeds/videos.xml") {
+    //cant find a way to block already in feed page, so special handler
+    DEBUG && console.log( dom[1] + " pre split for domain " + (dom[1] === "/feeds/videos.xml").toString() );
+    wrongUrl("Already in RSS feed page.");    
   } else {
-    wrongUrl("has no \"www.youtube.com\" in url.");
+    // this makes new tab with assigned url.
+    DEBUG && console.log("Channel id: " + channelId);
+    enabled = true;
+    //channelId = code[2];
+    DEBUG && console.log("--------------------------------------------------------------------");
   }
+  updateIcon();
 }
 
 /*
@@ -88,8 +98,7 @@ function updateIcon() {
   });
   chrome.browserAction.setTitle({
     // Screen readers can see the title
-    // channelID contains error message if not enabled.
-    title: enabled ? 'YouTubeRSS\nOpen rss link for this channel\nChannel id: ' + channelId : 'YouTubeRSS: ' + channelId,
+    title: enabled ? 'YouTubeRSS\nOpen rss link for this channel\nChannel id: ' + channelId : 'YouTubeRSS: ' + errormsg,
     tabId: currentTab.id
   }); 
 }
@@ -126,16 +135,14 @@ function updateActiveTab(tabs) {
       if (isSupportedProtocol(currentTab.url)) {
         // process new url
         newTabProcess(currentTab.url);
-        // update icon and title
-        updateIcon();
       }
     }
   }
 
+
   // call update tab function on current, active tab.
   chrome.tabs.query({active: true, currentWindow: true}, function(tab){updateTab(tab);});
 }
-
 
 // Add openRSSTab() as a listener to clicks on the browser action.
 chrome.browserAction.onClicked.addListener(openRSSTab);
@@ -156,8 +163,3 @@ updateActiveTab();
 
 // Done load everything.
 console.log("youtube rss feed loaded.");
-
-
-
-
-

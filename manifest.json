@@ -3,19 +3,29 @@
   "description": "Adds browser action icon to toolbar for getting rss feed url from channel url.",
   "manifest_version": 2,
   "name": "YouTubeRSS",
-  "version": "1.2",
+  "version": "2.0",
   "homepage_url": "https://github.com/rredford/YouTubeRSS",
   "icons": {
-    "48": "icons/page-48.png"
+    "48": "icons/page-disabled-48.png"
   },
 
   "background": {
     "scripts": ["youtuberss.js"]
   },
 
+    "content_scripts": [
+        {
+        "matches": [
+            "http://*.youtube.com/*",
+            "https://*.youtube.com/*"
+        ],
+     "js": ["channelId.js"]
+        }
+    ],
+
 
   "browser_action": {
-    "default_icon": "icons/page-32.png"
+    "default_icon": "icons/page-disabled-32.png"
   },
 
   "permissions": [
